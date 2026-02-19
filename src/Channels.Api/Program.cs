@@ -15,9 +15,17 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<ApiHostOptions>(builder.Configuration.GetSection("Host"));
 builder.Services.Configure<QueueOptions>(builder.Configuration.GetSection("Queue"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection("Mongo"));
+
+builder.Logging.ClearProviders();
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.SingleLine = true;
+    options.TimestampFormat = "HH:mm:ss ";
+});
 
 builder.Services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
 builder.Services.AddSingleton<IDedupStore, InMemoryDedupStore>();
@@ -79,6 +87,9 @@ builder.Services.AddHostedService<ProducerBackgroundService>();
 builder.Services.AddHostedService<ConsumerPoolBackgroundService>();
 
 var app = builder.Build();
+var hostOptions = app.Services.GetRequiredService<IOptions<ApiHostOptions>>().Value;
+app.Urls.Clear();
+app.Urls.Add(hostOptions.Url);
 app.MapQueueEndpoints();
 app.Run();
 
