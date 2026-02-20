@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Threading.Channels;
-using Channels.Api.Contracts;
+using Channels.Consumer.Contracts;
 
 namespace Channels.Api.Tests;
 
@@ -34,3 +34,5 @@ public sealed class BackpressureTests
         Assert.True(sw.ElapsedMilliseconds >= 120);
     }
 }
+
+

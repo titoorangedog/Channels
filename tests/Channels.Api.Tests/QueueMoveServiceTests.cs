@@ -1,5 +1,6 @@
 using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
 using Channels.Api.Queue;
 using Channels.Api.Serialization;
@@ -46,3 +47,5 @@ public sealed class QueueMoveServiceTests
         Assert.Empty(error);
     }
 }
+
+

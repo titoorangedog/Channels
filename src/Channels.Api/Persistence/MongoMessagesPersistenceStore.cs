@@ -1,5 +1,7 @@
-using Channels.Api.Abstractions;
+using Channels.Consumer.Persistence;
 using Channels.Api.Configuration;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -76,17 +78,20 @@ public sealed class MongoMessagesPersistenceStore : IMessagesPersistenceStore
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        var docs = await _collection.Find(x => ids.Contains(x.Id)).ToListAsync(ct);
+        var filter = Builders<PersistedMessageDocument>.Filter.In(x => x.Id, ids);
+        var docs = await _collection.Find(filter).ToListAsync(ct);
         return docs.ToDictionary(x => x.Id, x => x.Status, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<bool> ExistsUnfinishedAsync(string messageId, CancellationToken ct)
     {
         var statuses = new[] { "Pending", "Processing" };
-        var count = await _collection.CountDocumentsAsync(
-            x => x.Id == messageId && statuses.Contains(x.Status),
-            cancellationToken: ct);
+        var filter = Builders<PersistedMessageDocument>.Filter.Eq(x => x.Id, messageId)
+            & Builders<PersistedMessageDocument>.Filter.In(x => x.Status, statuses);
+        var count = await _collection.CountDocumentsAsync(filter, cancellationToken: ct);
 
         return count > 0;
     }
 }
+
+

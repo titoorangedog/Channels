@@ -1,8 +1,10 @@
-using Channels.Api.Contracts;
+using Channels.Consumer.Contracts;
 
-namespace Channels.Api.Abstractions;
+namespace Channels.Consumer.Abstractions;
 
 public interface IMessageProcessor
 {
     Task ProcessAsync(QueueEnvelope msg, CancellationToken ct);
 }
+
+

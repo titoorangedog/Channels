@@ -1,4 +1,5 @@
-using Channels.Api.Abstractions;
+using Channels.Consumer.Persistence;
+using Channels.Consumer.Abstractions;
 
 namespace Channels.Api.Persistence;
 
@@ -111,3 +112,5 @@ public sealed class InMemoryMessagesPersistenceStore : IMessagesPersistenceStore
         };
     }
 }
+
+

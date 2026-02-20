@@ -1,4 +1,5 @@
 using Channels.Api.Configuration;
+using Channels.Consumer.Configuration;
 using Channels.Api.Domain;
 using Channels.Api.Endpoints;
 using Channels.Api.Persistence;
@@ -41,3 +42,5 @@ public sealed class EnqueueEndpointTests
         Assert.NotNull(result);
     }
 }
+
+

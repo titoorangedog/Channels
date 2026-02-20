@@ -6,3 +6,4 @@ public class ReportExecutionModelBase : InfoExecutionModelBase
     public string? TenantId { get; set; }
     public List<QueryParameter> Parameters { get; set; } = new();
 }
+

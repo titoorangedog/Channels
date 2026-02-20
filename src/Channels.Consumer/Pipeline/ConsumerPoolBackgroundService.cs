@@ -1,10 +1,12 @@
 using System.Threading.Channels;
-using Channels.Api.Configuration;
-using Channels.Api.Contracts;
-using Channels.Api.Processing;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
+using Channels.Consumer.Processing;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Channels.Api.Pipeline;
+namespace Channels.Consumer.Pipeline;
 
 public sealed class ConsumerPoolBackgroundService : IHostedService
 {
@@ -63,8 +65,10 @@ public sealed class ConsumerPoolBackgroundService : IHostedService
     {
         await foreach (var item in _channel.Reader.ReadAllAsync(ct))
         {
-            _logger.LogDebug("Worker {WorkerId} handling message {MessageId}.", workerId, item.MessageId);
+            _logger.LogInformation("Worker {WorkerId} picked message {MessageId}.", workerId, item.MessageId);
             await _handler.HandleAsync(item, ct);
         }
     }
 }
+
+

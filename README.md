@@ -15,12 +15,17 @@ Mongo persistence:
 - On restart, `Pending/Processing` records are reloaded into the channel.
 - Dedup by `MessageId` (`IDedupStore`) prevents uncontrolled duplicates under at-least-once semantics.
 
-## Endpoints
+## Minimal API Endpoints
 - `POST /api/reports/enqueue`
+  Enqueue a `ReportExecutionModel` message into the main queue.
 - `GET /api/queues/main/messages?max=100`
+  Peek messages from the main queue without consuming them.
 - `GET /api/queues/error/messages?max=100`
+  Peek messages from the error queue without consuming them.
 - `POST /api/queues/error/move/{messageId}`
+  Move a single message from error queue to main queue by `messageId`.
 - `POST /api/queues/error/move-all`
+  Move all messages from error queue to main queue.
 
 ## Configuration
 `appsettings.json`

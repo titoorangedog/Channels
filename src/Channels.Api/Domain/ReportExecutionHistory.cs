@@ -10,3 +10,4 @@ public sealed class ReportExecutionHistory
     public string Status { get; set; } = "Pending";
     public string? Error { get; set; }
 }
+

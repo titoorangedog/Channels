@@ -1,4 +1,6 @@
+using Channels.Consumer.Persistence;
 using Channels.Api.Configuration;
+using Channels.Consumer.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -44,3 +46,5 @@ public sealed class MongoIndexesInitializerHostedService : IHostedService
         return Task.CompletedTask;
     }
 }
+
+

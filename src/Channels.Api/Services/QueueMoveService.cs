@@ -1,6 +1,8 @@
-using Channels.Api.Abstractions;
+using Channels.Consumer.Persistence;
 using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
 using Microsoft.Extensions.Options;
 
@@ -129,3 +131,5 @@ public sealed class QueueMoveService
             new Dictionary<string, string>(errorEnvelope.OriginalHeaders, StringComparer.OrdinalIgnoreCase));
     }
 }
+
+

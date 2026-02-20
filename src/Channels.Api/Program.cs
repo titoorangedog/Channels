@@ -1,15 +1,19 @@
-using System.Threading.Channels;
-using Channels.Api.Abstractions;
 using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using System.Threading.Channels;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
 using Channels.Api.Dedup;
 using Channels.Api.Endpoints;
 using Channels.Api.Persistence;
 using Channels.Api.Pipeline;
 using Channels.Api.Processing;
+using Channels.Consumer.Pipeline;
+using Channels.Consumer.Processing;
 using Channels.Api.Queue;
 using Channels.Api.Serialization;
 using Channels.Api.Services;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -25,6 +29,15 @@ builder.Logging.AddSimpleConsole(options =>
 {
     options.SingleLine = true;
     options.TimestampFormat = "HH:mm:ss ";
+});
+
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields =
+        HttpLoggingFields.RequestMethod |
+        HttpLoggingFields.RequestPath |
+        HttpLoggingFields.ResponseStatusCode |
+        HttpLoggingFields.Duration;
 });
 
 builder.Services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
@@ -90,7 +103,31 @@ var app = builder.Build();
 var hostOptions = app.Services.GetRequiredService<IOptions<ApiHostOptions>>().Value;
 app.Urls.Clear();
 app.Urls.Add(hostOptions.Url);
+app.UseHttpLogging();
+app.Use(async (context, next) =>
+{
+    var start = DateTimeOffset.UtcNow;
+    Console.WriteLine($"[REQ] {context.Request.Method} {context.Request.Path}");
+    await next();
+    var elapsed = DateTimeOffset.UtcNow - start;
+    Console.WriteLine($"[RES] {context.Request.Method} {context.Request.Path} -> {context.Response.StatusCode} ({elapsed.TotalMilliseconds:F0} ms)");
+});
 app.MapQueueEndpoints();
+
+var consoleLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("WorkerConsole");
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    Console.WriteLine($"[WORKER] Channels.Api started on {hostOptions.Url}");
+    consoleLogger.LogInformation("Channels.Api worker started on {Url}", hostOptions.Url);
+});
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    Console.WriteLine("[WORKER] Channels.Api stopping.");
+    consoleLogger.LogInformation("Channels.Api worker stopping.");
+});
+
 app.Run();
 
 public partial class Program;
+
+

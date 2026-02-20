@@ -1,5 +1,5 @@
-using Channels.Api.Abstractions;
-using Channels.Api.Contracts;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Contracts;
 using Channels.Api.Domain;
 
 namespace Channels.Api.Processing;
@@ -28,3 +28,5 @@ public sealed class DummyMessageProcessor : IMessageProcessor
         _logger.LogInformation("Processed message {MessageId} for report {ReportId} and user {User}.", msg.MessageId, model.ReportId, model.User);
     }
 }
+
+

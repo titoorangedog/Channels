@@ -1,6 +1,6 @@
-using Channels.Api.Persistence;
+using Channels.Consumer.Persistence;
 
-namespace Channels.Api.Abstractions;
+namespace Channels.Consumer.Abstractions;
 
 public interface IMessagesPersistenceStore
 {
@@ -12,3 +12,5 @@ public interface IMessagesPersistenceStore
     Task<Dictionary<string, string>> GetStatusesAsync(IEnumerable<string> messageIds, CancellationToken ct);
     Task<bool> ExistsUnfinishedAsync(string messageId, CancellationToken ct);
 }
+
+

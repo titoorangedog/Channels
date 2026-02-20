@@ -8,3 +8,4 @@ public sealed class ReportExecutionResult
     public string? ErrorMessage { get; set; }
     public DateTimeOffset CompletedAt { get; set; } = DateTimeOffset.UtcNow;
 }
+

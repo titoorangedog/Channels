@@ -1,7 +1,8 @@
-using Azure.Messaging.ServiceBus;
-using Channels.Api.Abstractions;
 using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using Azure.Messaging.ServiceBus;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace Channels.Api.Queue;
@@ -162,3 +163,5 @@ public sealed class AzureServiceBusQueueClient : IQueueClient, IAsyncDisposable
         return headers;
     }
 }
+
+

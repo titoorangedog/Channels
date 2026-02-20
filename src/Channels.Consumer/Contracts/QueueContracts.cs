@@ -1,4 +1,4 @@
-namespace Channels.Api.Contracts;
+namespace Channels.Consumer.Contracts;
 
 public sealed record QueueEnvelope(
     string MessageId,
@@ -40,3 +40,5 @@ public sealed record QueuePeekItemResponse(
     string? PersistenceStatus);
 
 public sealed record MoveAllResult(int MovedCount);
+
+

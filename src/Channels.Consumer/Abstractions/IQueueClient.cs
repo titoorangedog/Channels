@@ -1,6 +1,6 @@
-using Channels.Api.Contracts;
+using Channels.Consumer.Contracts;
 
-namespace Channels.Api.Abstractions;
+namespace Channels.Consumer.Abstractions;
 
 public interface IQueueClient
 {
@@ -13,3 +13,5 @@ public interface IQueueClient
     Task CompleteAsync(QueueReceiveItem item, CancellationToken ct);
     Task AbandonAsync(QueueReceiveItem item, CancellationToken ct);
 }
+
+

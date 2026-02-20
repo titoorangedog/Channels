@@ -1,9 +1,10 @@
-using Channels.Api.Abstractions;
-using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Channels.Api.Processing;
+namespace Channels.Consumer.Processing;
 
 public sealed class QueueMessageHandler
 {
@@ -110,3 +111,5 @@ public sealed class QueueMessageHandler
         return baseDelay + jitter;
     }
 }
+
+

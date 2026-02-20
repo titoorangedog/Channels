@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Channels.Api.Abstractions;
+using Channels.Consumer.Abstractions;
 
 namespace Channels.Api.Serialization;
 
@@ -36,3 +36,5 @@ public sealed class JsonMessageSerializer : IMessageSerializer
         return new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
     }
 }
+
+

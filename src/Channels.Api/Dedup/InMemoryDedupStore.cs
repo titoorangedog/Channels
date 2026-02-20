@@ -1,4 +1,4 @@
-using Channels.Api.Abstractions;
+using Channels.Consumer.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Channels.Api.Dedup;
@@ -23,3 +23,5 @@ public sealed class InMemoryDedupStore : IDedupStore
         _cache.Remove(messageId);
     }
 }
+
+

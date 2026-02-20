@@ -1,5 +1,5 @@
-using Channels.Api.Abstractions;
-using Channels.Api.Contracts;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Contracts;
 
 namespace Channels.Api.Queue;
 
@@ -179,3 +179,5 @@ public sealed class InMemoryQueueClient : IQueueClient
         public string QueueName { get; set; } = string.Empty;
     }
 }
+
+

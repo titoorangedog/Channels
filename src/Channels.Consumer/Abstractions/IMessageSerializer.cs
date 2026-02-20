@@ -1,4 +1,4 @@
-namespace Channels.Api.Abstractions;
+namespace Channels.Consumer.Abstractions;
 
 public interface IMessageSerializer
 {
@@ -6,3 +6,5 @@ public interface IMessageSerializer
     T Deserialize<T>(string payload);
     IDictionary<string, string> NormalizeHeaders(IDictionary<string, string>? headers);
 }
+
+

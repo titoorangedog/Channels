@@ -1,3 +1,4 @@
+using Channels.Api.Configuration;
 namespace Channels.Api.Configuration;
 
 public sealed class QueueOptions
@@ -7,3 +8,5 @@ public sealed class QueueOptions
     public string QueueName { get; set; } = "BackOfficeEU.Reports";
     public string QueueErrorName { get; set; } = "BackOfficeEU.Reports.Error";
 }
+
+

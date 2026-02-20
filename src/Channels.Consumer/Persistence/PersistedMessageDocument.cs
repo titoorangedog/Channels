@@ -1,10 +1,8 @@
-using MongoDB.Bson.Serialization.Attributes;
-
-namespace Channels.Api.Persistence;
+using Channels.Consumer.Persistence;
+namespace Channels.Consumer.Persistence;
 
 public sealed class PersistedMessageDocument
 {
-    [BsonId]
     public string Id { get; set; } = string.Empty;
     public string QueueName { get; set; } = string.Empty;
     public string Payload { get; set; } = string.Empty;
@@ -17,3 +15,4 @@ public sealed class PersistedMessageDocument
     public string? LastError { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
 }
+

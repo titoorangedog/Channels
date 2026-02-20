@@ -1,8 +1,9 @@
-using Channels.Api.Abstractions;
-using Channels.Api.Configuration;
-using Channels.Api.Contracts;
+using Channels.Consumer.Persistence;
+using Channels.Consumer.Abstractions;
+using Channels.Consumer.Configuration;
+using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
-using Channels.Api.Processing;
+using Channels.Consumer.Processing;
 using Channels.Api.Queue;
 using Channels.Api.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -131,3 +132,5 @@ public sealed class ProcessingPipelineTests
         }
     }
 }
+
+

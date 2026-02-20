@@ -1,4 +1,4 @@
-namespace Channels.Api.Configuration;
+namespace Channels.Consumer.Configuration;
 
 public sealed class PipelineOptions
 {
@@ -10,3 +10,5 @@ public sealed class PipelineOptions
     public int PeekMaxDefault { get; set; } = 100;
     public int ErrorMoveScanLimit { get; set; } = 200;
 }
+
+
