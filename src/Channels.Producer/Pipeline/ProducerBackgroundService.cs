@@ -1,13 +1,14 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
 using System.Threading.Channels;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
-using Channels.Api.Persistence;
+using Channels.Producer.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Channels.Api.Pipeline;
+namespace Channels.Producer.Pipeline;
 
 public sealed class ProducerBackgroundService : IHostedService
 {
@@ -16,7 +17,6 @@ public sealed class ProducerBackgroundService : IHostedService
     private readonly IDedupStore _dedupStore;
     private readonly Channel<QueueReceiveItem> _channel;
     private readonly QueueOptions _queueOptions;
-    private readonly MongoOptions _mongoOptions;
     private readonly ILogger<ProducerBackgroundService> _logger;
 
     private CancellationTokenSource? _cts;
@@ -28,7 +28,6 @@ public sealed class ProducerBackgroundService : IHostedService
         IDedupStore dedupStore,
         Channel<QueueReceiveItem> channel,
         IOptions<QueueOptions> queueOptions,
-        IOptions<MongoOptions> mongoOptions,
         ILogger<ProducerBackgroundService> logger)
     {
         _queueClient = queueClient;
@@ -36,7 +35,6 @@ public sealed class ProducerBackgroundService : IHostedService
         _dedupStore = dedupStore;
         _channel = channel;
         _queueOptions = queueOptions.Value;
-        _mongoOptions = mongoOptions.Value;
         _logger = logger;
     }
 
@@ -79,35 +77,31 @@ public sealed class ProducerBackgroundService : IHostedService
                 }
 
                 var exists = await _store.ExistsUnfinishedAsync(message.MessageId, ct);
-                if (exists)
+                if (!exists)
                 {
-                    // At-least-once delivery can duplicate live receives after restart.
-                    await _queueClient.CompleteAsync(message, ct);
-                    continue;
-                }
+                    var now = DateTimeOffset.UtcNow;
+                    var doc = new PersistedMessageDocument
+                    {
+                        Id = message.MessageId,
+                        QueueName = _queueOptions.QueueName,
+                        Payload = message.Body,
+                        Headers = new Dictionary<string, string>(message.Headers, StringComparer.OrdinalIgnoreCase),
+                        EnqueuedAt = message.EnqueuedAt,
+                        CreatedAt = now,
+                        Status = "Pending",
+                        ExpiresAt = now.AddDays(MongoOptions.RetentionDays)
+                    };
 
-                var now = DateTimeOffset.UtcNow;
-                var doc = new PersistedMessageDocument
-                {
-                    Id = message.MessageId,
-                    QueueName = _queueOptions.QueueName,
-                    Payload = message.Body,
-                    Headers = new Dictionary<string, string>(message.Headers, StringComparer.OrdinalIgnoreCase),
-                    EnqueuedAt = message.EnqueuedAt,
-                    CreatedAt = now,
-                    Status = "Pending",
-                    ExpiresAt = now.AddDays(_mongoOptions.TtlDays)
-                };
-
-                try
-                {
-                    await _store.UpsertAsync(doc, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Persistence upsert failed for {MessageId}; abandoning message lock.", message.MessageId);
-                    await _queueClient.AbandonAsync(message, ct);
-                    continue;
+                    try
+                    {
+                        await _store.UpsertAsync(doc, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Persistence upsert failed for {MessageId}; abandoning message lock.", message.MessageId);
+                        await _queueClient.AbandonAsync(message, ct);
+                        continue;
+                    }
                 }
 
                 if (!_dedupStore.TryStart(message.MessageId, TimeSpan.FromHours(2)))

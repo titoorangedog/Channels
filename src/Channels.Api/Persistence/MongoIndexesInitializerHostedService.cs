@@ -1,7 +1,7 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
-using Channels.Consumer.Configuration;
+using Channels.Producer.Configuration;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Channels.Api.Persistence;
@@ -33,12 +33,33 @@ public sealed class MongoIndexesInitializerHostedService : IHostedService
         var database = _mongoClient.GetDatabase(options.DatabaseName);
         var collection = database.GetCollection<PersistedMessageDocument>(options.CollectionName);
 
-        var ttlIndex = new CreateIndexModel<PersistedMessageDocument>(
+        var indexes = await (await collection.Indexes.ListAsync(cancellationToken)).ToListAsync(cancellationToken);
+        var ttlIndex = indexes.FirstOrDefault(x => x.TryGetValue("name", out var name) && name == "ttl_expires_at");
+        var ttlIndexIsValid = ttlIndex is not null
+            && ttlIndex.TryGetValue("expireAfterSeconds", out var expireAfterSeconds)
+            && expireAfterSeconds.ToInt32() == 0
+            && ttlIndex.TryGetValue("key", out var keyDoc)
+            && keyDoc.AsBsonDocument.TryGetValue(nameof(PersistedMessageDocument.ExpiresAt), out var expiresKey)
+            && expiresKey.ToInt32() == 1;
+
+        if (ttlIndex is not null && !ttlIndexIsValid)
+        {
+            await collection.Indexes.DropOneAsync("ttl_expires_at", cancellationToken);
+        }
+
+        var ttlIndexModel = new CreateIndexModel<PersistedMessageDocument>(
             Builders<PersistedMessageDocument>.IndexKeys.Ascending(x => x.ExpiresAt),
             new CreateIndexOptions { Name = "ttl_expires_at", ExpireAfter = TimeSpan.Zero });
 
-        await collection.Indexes.CreateOneAsync(ttlIndex, cancellationToken: cancellationToken);
-        _logger.LogInformation("MongoDB TTL index initialized on {Collection}.", options.CollectionName);
+        if (!ttlIndexIsValid)
+        {
+            await collection.Indexes.CreateOneAsync(ttlIndexModel, cancellationToken: cancellationToken);
+        }
+
+        _logger.LogInformation(
+            "MongoDB TTL retention verified on {Collection}: documents expire after {RetentionDays} days via ExpiresAt.",
+            options.CollectionName,
+            MongoOptions.RetentionDays);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

@@ -1,7 +1,7 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
+using Channels.Producer.Configuration;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -44,6 +44,15 @@ public sealed class MongoMessagesPersistenceStore : IMessagesPersistenceStore
         await _collection.UpdateOneAsync(x => x.Id == messageId, update, cancellationToken: ct);
     }
 
+    public async Task MarkCompletedAsync(string messageId, CancellationToken ct)
+    {
+        var update = Builders<PersistedMessageDocument>.Update
+            .Set(x => x.Status, "Completed")
+            .Set(x => x.LastAttemptAt, DateTimeOffset.UtcNow);
+
+        await _collection.UpdateOneAsync(x => x.Id == messageId, update, cancellationToken: ct);
+    }
+
     public async Task MarkMovedToErrorAsync(string messageId, string error, CancellationToken ct)
     {
         var update = Builders<PersistedMessageDocument>.Update
@@ -52,11 +61,6 @@ public sealed class MongoMessagesPersistenceStore : IMessagesPersistenceStore
             .Set(x => x.LastAttemptAt, DateTimeOffset.UtcNow);
 
         await _collection.UpdateOneAsync(x => x.Id == messageId, update, cancellationToken: ct);
-    }
-
-    public async Task DeleteAsync(string messageId, CancellationToken ct)
-    {
-        await _collection.DeleteOneAsync(x => x.Id == messageId, ct);
     }
 
     public async Task<IReadOnlyList<PersistedMessageDocument>> LoadUnfinishedAsync(CancellationToken ct)

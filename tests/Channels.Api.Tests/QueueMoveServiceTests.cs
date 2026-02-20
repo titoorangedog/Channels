@@ -1,9 +1,9 @@
-using Channels.Api.Configuration;
 using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
-using Channels.Api.Queue;
-using Channels.Api.Serialization;
+using Channels.Producer.Configuration;
+using Channels.Producer.Queue;
+using Channels.Producer.Serialization;
 using Channels.Api.Services;
 using Microsoft.Extensions.Options;
 
@@ -22,8 +22,7 @@ public sealed class QueueMoveServiceTests
             serializer,
             store,
             Options.Create(new QueueOptions()),
-            Options.Create(new PipelineOptions()),
-            Options.Create(new MongoOptions { ConnectionString = "InMemory" }));
+            Options.Create(new PipelineOptions()));
 
         for (var i = 0; i < 3; i++)
         {

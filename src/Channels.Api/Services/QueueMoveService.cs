@@ -1,9 +1,9 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
+using Channels.Producer.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Channels.Api.Services;
@@ -15,22 +15,19 @@ public sealed class QueueMoveService
     private readonly IMessagesPersistenceStore _store;
     private readonly QueueOptions _queueOptions;
     private readonly PipelineOptions _pipelineOptions;
-    private readonly MongoOptions _mongoOptions;
 
     public QueueMoveService(
         IQueueClient queueClient,
         IMessageSerializer serializer,
         IMessagesPersistenceStore store,
         IOptions<QueueOptions> queueOptions,
-        IOptions<PipelineOptions> pipelineOptions,
-        IOptions<MongoOptions> mongoOptions)
+        IOptions<PipelineOptions> pipelineOptions)
     {
         _queueClient = queueClient;
         _serializer = serializer;
         _store = store;
         _queueOptions = queueOptions.Value;
         _pipelineOptions = pipelineOptions.Value;
-        _mongoOptions = mongoOptions.Value;
     }
 
     public async Task<bool> MoveByIdAsync(string messageId, CancellationToken ct)
@@ -101,7 +98,7 @@ public sealed class QueueMoveService
             EnqueuedAt = envelope.EnqueuedAt,
             CreatedAt = now,
             Status = "Pending",
-            ExpiresAt = now.AddDays(_mongoOptions.TtlDays)
+            ExpiresAt = now.AddDays(MongoOptions.RetentionDays)
         }, ct);
     }
 

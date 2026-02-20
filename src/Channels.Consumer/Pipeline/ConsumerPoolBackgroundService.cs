@@ -17,11 +17,7 @@ public sealed class ConsumerPoolBackgroundService : IHostedService
 
     private Task? _runTask;
 
-    public ConsumerPoolBackgroundService(
-        Channel<QueueReceiveItem> channel,
-        QueueMessageHandler handler,
-        IOptions<PipelineOptions> options,
-        ILogger<ConsumerPoolBackgroundService> logger)
+    public ConsumerPoolBackgroundService(Channel<QueueReceiveItem> channel, QueueMessageHandler handler, IOptions<PipelineOptions> options, ILogger<ConsumerPoolBackgroundService> logger)
     {
         _channel = channel;
         _handler = handler;

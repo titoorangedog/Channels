@@ -1,11 +1,11 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
 using Channels.Api.Domain;
 using Channels.Api.Persistence;
 using Channels.Api.Services;
+using Channels.Producer.Configuration;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +28,6 @@ public static class QueueEndpoints
         IMessagesPersistenceStore store,
         IMessageSerializer serializer,
         IOptions<QueueOptions> queueOptions,
-        IOptions<MongoOptions> mongoOptions,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(model.ReportId) || string.IsNullOrWhiteSpace(model.User))
@@ -54,7 +53,7 @@ public static class QueueEndpoints
             EnqueuedAt = now,
             CreatedAt = now,
             Status = "Pending",
-            ExpiresAt = now.AddDays(mongoOptions.Value.TtlDays)
+            ExpiresAt = now.AddDays(MongoOptions.RetentionDays)
         };
 
         await store.UpsertAsync(persisted, ct);
@@ -66,7 +65,7 @@ public static class QueueEndpoints
         }
         catch (Exception ex)
         {
-            await store.DeleteAsync(messageId, ct);
+            await store.MarkMovedToErrorAsync(messageId, $"Enqueue failed: {ex.Message}", ct);
             return TypedResults.Problem($"Failed to enqueue message: {ex.Message}");
         }
 
@@ -83,14 +82,44 @@ public static class QueueEndpoints
         var limit = ResolveMax(max, pipelineOptions.Value.PeekMaxDefault);
         var peeked = await queueClient.PeekMainAsync(limit, ct);
         var statuses = await store.GetStatusesAsync(peeked.Select(x => x.MessageId), ct);
+        var merged = new List<QueuePeekItemResponse>(limit * 2);
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var response = peeked
-            .Select(x => new QueuePeekItemResponse(
-                x.MessageId,
-                x.EnqueuedAt,
-                x.Headers,
-                x.Payload,
-                statuses.GetValueOrDefault(x.MessageId)))
+        foreach (var item in peeked)
+        {
+            merged.Add(new QueuePeekItemResponse(
+                item.MessageId,
+                item.EnqueuedAt,
+                item.Headers,
+                item.Payload,
+                statuses.GetValueOrDefault(item.MessageId)));
+
+            seenIds.Add(item.MessageId);
+        }
+
+        if (merged.Count < limit)
+        {
+            var unfinished = await store.LoadUnfinishedAsync(ct);
+            foreach (var doc in unfinished.OrderBy(x => x.EnqueuedAt))
+            {
+                if (!seenIds.Add(doc.Id))
+                {
+                    continue;
+                }
+
+                merged.Add(new QueuePeekItemResponse(
+                    doc.Id,
+                    doc.EnqueuedAt,
+                    doc.Headers,
+                    doc.Payload,
+                    doc.Status));
+            }
+        }
+
+        var response = merged
+            .OrderBy(x => x.EnqueuedAt)
+            .ThenBy(x => x.MessageId, StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
             .ToList();
 
         return TypedResults.Ok<IReadOnlyList<QueuePeekItemResponse>>(response);

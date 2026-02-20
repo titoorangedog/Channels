@@ -1,14 +1,14 @@
 using Channels.Consumer.Persistence;
-using Channels.Api.Configuration;
 using System.Threading.Channels;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
-using Channels.Api.Pipeline;
+using Channels.Producer.Configuration;
+using Channels.Producer.Pipeline;
 using Channels.Consumer.Processing;
-using Channels.Api.Queue;
-using Channels.Api.Serialization;
+using Channels.Producer.Queue;
+using Channels.Producer.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +17,7 @@ namespace Channels.Api.Tests;
 public sealed class PersistenceRecoveryTests
 {
     [Fact]
-    public async Task PersistedMessage_ProcessedSuccessfully_ShouldDeleteRecord()
+    public async Task PersistedMessage_ProcessedSuccessfully_ShouldMarkCompleted_AndSkipRecovery()
     {
         var serializer = new JsonMessageSerializer();
         var queue = new InMemoryQueueClient(serializer);
@@ -56,7 +56,10 @@ public sealed class PersistenceRecoveryTests
         }, CancellationToken.None);
 
         var statuses = await store.GetStatusesAsync(new[] { "ok-1" }, CancellationToken.None);
-        Assert.Empty(statuses);
+        Assert.Equal("Completed", statuses["ok-1"]);
+
+        var unfinished = await store.LoadUnfinishedAsync(CancellationToken.None);
+        Assert.DoesNotContain(unfinished, x => x.Id == "ok-1");
     }
 
     [Fact]
@@ -79,7 +82,7 @@ public sealed class PersistenceRecoveryTests
             ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
         }, CancellationToken.None);
 
-        var channel = Channel.CreateBounded<QueueReceiveItem>(new BoundedChannelOptions(5)
+        var channel = global::System.Threading.Channels.Channel.CreateBounded<QueueReceiveItem>(new BoundedChannelOptions(5)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = false,
@@ -92,7 +95,6 @@ public sealed class PersistenceRecoveryTests
             dedup,
             channel,
             Options.Create(new QueueOptions()),
-            Options.Create(new MongoOptions { ConnectionString = "InMemory", TtlDays = 30 }),
             NullLogger<ProducerBackgroundService>.Instance);
 
         await producer.StartAsync(CancellationToken.None);
@@ -110,7 +112,7 @@ public sealed class PersistenceRecoveryTests
         await producer.StopAsync(CancellationToken.None);
 
         var statuses = await store.GetStatusesAsync(new[] { "crash-1" }, CancellationToken.None);
-        Assert.Empty(statuses);
+        Assert.Equal("Completed", statuses["crash-1"]);
     }
 
     [Fact]

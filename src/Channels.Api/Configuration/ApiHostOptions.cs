@@ -1,4 +1,3 @@
-using Channels.Api.Configuration;
 namespace Channels.Api.Configuration;
 
 public sealed class ApiHostOptions

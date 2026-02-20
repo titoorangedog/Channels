@@ -1,7 +1,9 @@
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Contracts;
+using Channels.Producer.Configuration;
+using Microsoft.Extensions.Options;
 
-namespace Channels.Api.Queue;
+namespace Channels.Producer.Queue;
 
 public sealed class InMemoryQueueClient : IQueueClient
 {
@@ -10,10 +12,19 @@ public sealed class InMemoryQueueClient : IQueueClient
     private readonly Queue<QueueData> _errorQueue = new();
     private readonly Dictionary<Guid, QueueData> _inflight = new();
     private readonly IMessageSerializer _serializer;
+    private readonly string _mainQueueName;
+    private readonly string _errorQueueName;
 
     public InMemoryQueueClient(IMessageSerializer serializer)
+        : this(serializer, Options.Create(new QueueOptions()))
+    {
+    }
+
+    public InMemoryQueueClient(IMessageSerializer serializer, IOptions<QueueOptions> queueOptions)
     {
         _serializer = serializer;
+        _mainQueueName = queueOptions.Value.QueueName;
+        _errorQueueName = queueOptions.Value.QueueErrorName;
     }
 
     public Task EnqueueMainAsync(QueueEnvelope envelope, CancellationToken ct)
@@ -27,7 +38,7 @@ public sealed class InMemoryQueueClient : IQueueClient
                 Payload = envelope.Payload,
                 Headers = _serializer.NormalizeHeaders(envelope.Headers),
                 EnqueuedAt = envelope.EnqueuedAt,
-                QueueName = "BackOfficeEU.Reports"
+                QueueName = _mainQueueName
             });
         }
 
@@ -48,7 +59,7 @@ public sealed class InMemoryQueueClient : IQueueClient
                     ["ErrorEnvelope"] = "true"
                 },
                 EnqueuedAt = envelope.FailedAt,
-                QueueName = "BackOfficeEU.Reports.Error"
+                QueueName = _errorQueueName
             });
         }
 
@@ -134,7 +145,7 @@ public sealed class InMemoryQueueClient : IQueueClient
                 return Task.CompletedTask;
             }
 
-            if (data.QueueName == "BackOfficeEU.Reports.Error")
+            if (data.QueueName == _errorQueueName)
             {
                 _errorQueue.Enqueue(data);
             }

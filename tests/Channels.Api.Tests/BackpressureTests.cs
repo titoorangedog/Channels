@@ -9,7 +9,7 @@ public sealed class BackpressureTests
     [Fact]
     public async Task BoundedChannel_ShouldApplyBackpressure()
     {
-        var channel = Channel.CreateBounded<QueueReceiveItem>(new BoundedChannelOptions(1)
+        var channel = global::System.Threading.Channels.Channel.CreateBounded<QueueReceiveItem>(new BoundedChannelOptions(1)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = false,

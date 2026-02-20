@@ -1,18 +1,16 @@
 using Channels.Api.Configuration;
-using System.Threading.Channels;
+using Channel.Core.Logging;
 using Channels.Consumer.Abstractions;
 using Channels.Consumer.Configuration;
-using Channels.Consumer.Contracts;
 using Channels.Api.Dedup;
 using Channels.Api.Endpoints;
 using Channels.Api.Persistence;
-using Channels.Api.Pipeline;
 using Channels.Api.Processing;
 using Channels.Consumer.Pipeline;
 using Channels.Consumer.Processing;
-using Channels.Api.Queue;
-using Channels.Api.Serialization;
 using Channels.Api.Services;
+using Channels.Producer.Extensions;
+using Channels.Producer.Configuration;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -20,16 +18,9 @@ using MongoDB.Driver;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<ApiHostOptions>(builder.Configuration.GetSection("Host"));
-builder.Services.Configure<QueueOptions>(builder.Configuration.GetSection("Queue"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
-builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection("Mongo"));
-
-builder.Logging.ClearProviders();
-builder.Logging.AddSimpleConsole(options =>
-{
-    options.SingleLine = true;
-    options.TimestampFormat = "HH:mm:ss ";
-});
+builder.Logging.AddChannelCoreLogging(builder.Configuration);
+builder.Services.AddChannelCoreLogging();
 
 builder.Services.AddHttpLogging(options =>
 {
@@ -40,20 +31,8 @@ builder.Services.AddHttpLogging(options =>
         HttpLoggingFields.Duration;
 });
 
-builder.Services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
 builder.Services.AddSingleton<IDedupStore, InMemoryDedupStore>();
-
-builder.Services.AddSingleton(sp =>
-{
-    var pipelineOptions = sp.GetRequiredService<IOptions<PipelineOptions>>().Value;
-    var capacity = pipelineOptions.ChannelCapacity <= 0 ? 500 : pipelineOptions.ChannelCapacity;
-    return Channel.CreateBounded<QueueReceiveItem>(new BoundedChannelOptions(capacity)
-    {
-        FullMode = BoundedChannelFullMode.Wait,
-        SingleWriter = true,
-        SingleReader = false
-    });
-});
+builder.Services.AddChannelsProducer(builder.Configuration);
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
@@ -76,31 +55,16 @@ builder.Services.AddSingleton<IMessagesPersistenceStore>(sp =>
         sp.GetRequiredService<ILogger<MongoMessagesPersistenceStore>>());
 });
 
-builder.Services.AddSingleton<IQueueClient>(sp =>
-{
-    var queueOptions = sp.GetRequiredService<IOptions<QueueOptions>>().Value;
-    if (string.Equals(queueOptions.Provider, "InMemory", StringComparison.OrdinalIgnoreCase))
-    {
-        return new InMemoryQueueClient(sp.GetRequiredService<IMessageSerializer>());
-    }
-
-    return new AzureServiceBusQueueClient(
-        sp.GetRequiredService<IOptions<QueueOptions>>(),
-        sp.GetRequiredService<IOptions<PipelineOptions>>(),
-        sp.GetRequiredService<IMessageSerializer>(),
-        sp.GetRequiredService<ILogger<AzureServiceBusQueueClient>>());
-});
-
 builder.Services.AddSingleton<IMessageProcessor, DummyMessageProcessor>();
 builder.Services.AddSingleton<QueueMessageHandler>();
 builder.Services.AddSingleton<QueueMoveService>();
 
 builder.Services.AddHostedService<MongoIndexesInitializerHostedService>();
-builder.Services.AddHostedService<ProducerBackgroundService>();
 builder.Services.AddHostedService<ConsumerPoolBackgroundService>();
 
 var app = builder.Build();
 var hostOptions = app.Services.GetRequiredService<IOptions<ApiHostOptions>>().Value;
+var sharedLog = app.Services.GetRequiredService<IChannelLogService>();
 app.Urls.Clear();
 app.Urls.Add(hostOptions.Url);
 app.UseHttpLogging();
@@ -119,11 +83,13 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     Console.WriteLine($"[WORKER] Channels.Api started on {hostOptions.Url}");
     consoleLogger.LogInformation("Channels.Api worker started on {Url}", hostOptions.Url);
+    sharedLog.Information("WorkerConsole", "Channels.Api shared logger started on {Url}", hostOptions.Url);
 });
 app.Lifetime.ApplicationStopping.Register(() =>
 {
     Console.WriteLine("[WORKER] Channels.Api stopping.");
     consoleLogger.LogInformation("Channels.Api worker stopping.");
+    sharedLog.Warning("WorkerConsole", "Channels.Api shared logger stopping.");
 });
 
 app.Run();

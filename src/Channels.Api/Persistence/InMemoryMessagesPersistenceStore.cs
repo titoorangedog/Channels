@@ -33,6 +33,20 @@ public sealed class InMemoryMessagesPersistenceStore : IMessagesPersistenceStore
         return Task.CompletedTask;
     }
 
+    public Task MarkCompletedAsync(string messageId, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            if (_items.TryGetValue(messageId, out var doc))
+            {
+                doc.Status = "Completed";
+                doc.LastAttemptAt = DateTimeOffset.UtcNow;
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task MarkMovedToErrorAsync(string messageId, string error, CancellationToken ct)
     {
         lock (_sync)
@@ -43,16 +57,6 @@ public sealed class InMemoryMessagesPersistenceStore : IMessagesPersistenceStore
                 doc.LastError = error;
                 doc.LastAttemptAt = DateTimeOffset.UtcNow;
             }
-        }
-
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(string messageId, CancellationToken ct)
-    {
-        lock (_sync)
-        {
-            _items.Remove(messageId);
         }
 
         return Task.CompletedTask;

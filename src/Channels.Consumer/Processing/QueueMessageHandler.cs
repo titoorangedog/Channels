@@ -54,7 +54,7 @@ public sealed class QueueMessageHandler
                     await _queueClient.CompleteAsync(item, ct);
                 }
 
-                await _store.DeleteAsync(item.MessageId, ct);
+                await _store.MarkCompletedAsync(item.MessageId, ct);
                 _dedupStore.Complete(item.MessageId);
                 return;
             }

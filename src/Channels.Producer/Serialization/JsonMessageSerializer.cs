@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Channels.Consumer.Abstractions;
 
-namespace Channels.Api.Serialization;
+namespace Channels.Producer.Serialization;
 
 public sealed class JsonMessageSerializer : IMessageSerializer
 {

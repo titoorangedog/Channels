@@ -4,8 +4,8 @@ using Channels.Consumer.Configuration;
 using Channels.Consumer.Contracts;
 using Channels.Api.Persistence;
 using Channels.Consumer.Processing;
-using Channels.Api.Queue;
-using Channels.Api.Serialization;
+using Channels.Producer.Queue;
+using Channels.Producer.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -102,7 +102,7 @@ public sealed class ProcessingPipelineTests
 
         Assert.Equal(3, flakyProcessor.Attempts);
         var statuses = await store.GetStatusesAsync(new[] { "retry-1" }, CancellationToken.None);
-        Assert.False(statuses.ContainsKey("retry-1"));
+        Assert.Equal("Completed", statuses["retry-1"]);
     }
 
     private sealed class AlwaysFailProcessor : IMessageProcessor
