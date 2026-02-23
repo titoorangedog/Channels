@@ -1,23 +1,46 @@
-using QueueService.Configuration;
+using System;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using QueueService.Services;
 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.Configure<QueueOptions>(builder.Configuration.GetSection(QueueOptions.SectionName));
-builder.Services.AddSingleton<IReportQueueService, ReportQueueService>();
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+internal class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    private static void Main(string[] args)
+    {
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.ConfigureServices(services =>
+                {
+                    // API controllers + swagger
+                    services.AddControllers();
+                    services.AddEndpointsApiExplorer();
+                    services.AddSwaggerGen();
+
+                    // Application queue service (in-memory channel-based)
+                    services.AddSingleton<IReportQueueService, ReportQueueService>();
+
+                    // Background worker that can perform maintenance, metrics or synthetic producers
+                    services.AddHostedService<QueueBackgroundWorker>();
+                });
+
+                webBuilder.Configure(app =>
+                {
+                    var env = app.ApplicationServices.GetRequiredService<IHostEnvironment>();
+
+                    if (env.IsDevelopment())
+                    {
+                        app.UseSwagger();
+                        app.UseSwaggerUI();
+                    }
+
+                    app.UseRouting();
+                    app.UseEndpoints(endpoints => endpoints.MapControllers());
+                });
+            })
+            .Build()
+            .Run();
+    }
 }
-
-app.MapControllers();
-
-app.Run();
