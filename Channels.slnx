@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Channel.Core/Channel.Core.csproj" />
+    <Project Path="src/Channels.Api/Channels.Api.csproj" />
+    <Project Path="src/Channels.Consumer/Channels.Consumer.csproj" />
+    <Project Path="src/Channels.Producer/Channels.Producer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Channels.Api.Tests/Channels.Api.Tests.csproj" />
+  </Folder>
+</Solution>

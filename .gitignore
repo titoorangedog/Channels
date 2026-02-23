@@ -1,5 +1,49 @@
-bin/
-obj/
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+artifacts/
+
+# Test output
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Visual Studio
 .vs/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!**/packages/build/
+
+# Logs
+*.log
+logs/
+
+# Local secrets / env
+.env
+.env.*
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
